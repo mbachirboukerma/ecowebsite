@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>𝓚𝓸𝓻𝓮𝓪𝓷 𝓓𝓮𝓵𝓲𝓰𝓱𝓽𝓼 - 𝓦𝓮𝓵𝓬𝓸𝓶𝓮</title>
+    
+    <!-- Preconnect to Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    
+    <!-- Almarai Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Almarai:wght@300;400;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Stylesheets -->
+    <link rel="stylesheet" href="shop.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link rel="stylesheet" href="navbar.css">
+    
+    <style>
+        html {
+            scroll-behavior: smooth;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation Bar -->
+    <div id="navbar-container"></div>
+    <!-- Main Content -->
+    <main>
+        <section class="products">
+            <h2>Our Products</h2>
+            <div class="product-grid" id="product-grid">
+                <!-- Products will be added dynamically with JavaScript -->
+            </div>
+        </section>
+    </main>
+    <!-- Shopping Cart Modal -->
+    <div class="cart-modal" id="cart-modal">
+        <div class="cart-content">
+            <div class="cart-header">
+                <h3>Your Cart</h3>
+                <button class="close-cart">&times;</button>
+            </div>
+            <div class="cart-items" id="cart-items">
+                <!-- Cart items will be added dynamically -->
+            </div>
+            <div class="cart-footer">
+                <div class="cart-total">
+                    <span>Total:</span>
+                    <span id="cart-total">$0.00</span>
+                </div>
+                <button class="checkout-btn" id="checkout-btn">Proceed to Checkout</button>
+            </div>
+        </div>
+    </div>
+    <!-- Footer Section -->
+    <footer>
+        <div class="footer-content">
+            <p>&copy; 2025 Korean Delights. All rights reserved.</p>
+        </div>
+    </footer>
+    <!-- Audio Elements -->
+    <audio id="click-sound" src="button-pressed-38129.mp3" preload="auto"></audio>
+    <audio id="add-to-cart-sound" src="https://assets.mixkit.co/sfx/preview/mixkit-achievement-bell-600.mp3" preload="auto"></audio>
+    <!-- JavaScript File -->
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        fetch('navbar.html')
+            .then(response => response.text())
+            .then(data => {
+                document.getElementById('navbar-container').innerHTML = data;
+                // تفعيل زر الدارك مود بعد تحميل الـ navbar
+                const themeToggle = document.querySelector('#theme-toggle input');
+                if(themeToggle) {
+                    themeToggle.checked = document.documentElement.getAttribute('data-theme') === 'dark';
+                    themeToggle.addEventListener('change', function() {
+                        if(this.checked) {
+                            document.documentElement.setAttribute('data-theme', 'dark');
+                        } else {
+                            document.documentElement.setAttribute('data-theme', 'light');
+                        }
+                    });
+                }
+                // تحميل shop.js بعد تحميل الـ navbar
+                var script = document.createElement('script');
+                script.src = 'shop.js';
+                document.body.appendChild(script);
+
+                const navbarEl = document.querySelector('.navbar, .shared-navbar');
+                const mainEl = document.querySelector('main');
+                if (navbarEl && mainEl) {
+                    mainEl.style.paddingTop = navbarEl.offsetHeight + 'px';
+                }
+
+                function applyTheme(isDark) {
+                    document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
+                    document.body.classList.toggle('dark-mode', isDark);
+                    const themeToggleInput = document.querySelector('#theme-toggle input');
+                    if (themeToggleInput) themeToggleInput.checked = isDark;
+                }
+
+                // عند تحميل الصفحة: طبّق المود المحفوظ
+                const savedMode = localStorage.getItem('darkMode');
+                if (savedMode !== null) {
+                    applyTheme(savedMode === 'true');
+                }
+                // عند تغيير الزر
+                const themeToggleInput = document.querySelector('#theme-toggle input');
+                if (themeToggleInput) {
+                    themeToggleInput.addEventListener('change', function() {
+                        localStorage.setItem('darkMode', this.checked);
+                        applyTheme(this.checked);
+                    });
+                }
+                // مزامنة بين التابات
+                window.addEventListener('storage', function(e) {
+                    if (e.key === 'darkMode') {
+                        applyTheme(e.newValue === 'true');
+                    }
+                });
+            });
+    });
+    </script>
+</body>
+</html>
