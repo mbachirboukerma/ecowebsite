@@ -8,12 +8,15 @@ const personalInfoForm = document.getElementById('personal-info-form');
 const confirmOrderBtn = document.getElementById('confirm-order');
 const orderSummary = document.getElementById('order-summary');
 const orderReceipt = document.getElementById('order-receipt');
-    const clickSound = document.getElementById('click-sound');
+const clickSound = document.getElementById('click-sound');
 const successSound = document.getElementById('success-sound');
 
 // Cart Data
 let cart = JSON.parse(localStorage.getItem('cart')) || [];
 let currentStep = 1;
+
+// متغير عالمي لحفظ آخر طلب
+let lastOrderItems = [];
 
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
@@ -610,16 +613,21 @@ function createConfetti() {
 
 // Receipt Modal
 function showReceiptModal() {
+    console.log("Attempting to show receipt modal...");
     const modal = document.querySelector('.receipt-modal');
-    if (!modal) return;
+    if (!modal) {
+        console.error("Receipt modal element not found!");
+        return;
+    }
 
     const orderItems = JSON.parse(localStorage.getItem('cart') || '[]');
-    const receiptItemsDiv = document.querySelector('.receipt-items');
+    console.log("Order items:", orderItems);
     
+    const receiptItemsDiv = document.querySelector('.receipt-items');
     if (receiptItemsDiv) {
         if (orderItems.length > 0) {
             receiptItemsDiv.innerHTML = orderItems.map(item => `
-                <div class="receipt-item">
+                    <div class="receipt-item">
                     <div class="receipt-item-details">
                         <img src="${item.image}" alt="${item.name}" style="width: 40px; height: 40px; object-fit: cover; border-radius: 8px;">
                         <span>${item.name} x ${item.quantity}</span>
@@ -656,65 +664,88 @@ function showReceiptModal() {
     modal.classList.add('active');
     modal.classList.remove('hidden');
     document.body.style.overflow = 'hidden';
+    console.log("Receipt modal should be visible now");
 }
 
 function closeReceiptModal() {
+    console.log("Attempting to close receipt modal...");
     const modal = document.querySelector('.receipt-modal');
-    if (!modal) return;
+    if (!modal) {
+        console.error("Receipt modal element not found!");
+        return;
+    }
     
     modal.classList.remove('active');
     modal.classList.add('hidden');
     document.body.style.overflow = '';
+    console.log("Receipt modal should be hidden now");
 }
 
 function bindConfirmationStepButtons() {
+    console.log("Binding confirmation step buttons...");
+    
     // زر عرض الفاتورة
     const viewReceiptBtn = document.getElementById('view-receipt');
     if (viewReceiptBtn) {
-        // إزالة جميع المستمعات السابقة
+        console.log("Found view receipt button");
         viewReceiptBtn.replaceWith(viewReceiptBtn.cloneNode(true));
         const newViewBtn = document.getElementById('view-receipt');
         newViewBtn.addEventListener('click', function(e) {
             e.preventDefault();
+            console.log("View receipt button clicked");
             showReceiptModal();
         });
+    } else {
+        console.error("View receipt button not found!");
     }
 
     // زر العودة للصفحة الرئيسية
     const homeBtn = document.getElementById('go-home');
     if (homeBtn) {
+        console.log("Found home button");
         homeBtn.replaceWith(homeBtn.cloneNode(true));
         const newHomeBtn = document.getElementById('go-home');
         newHomeBtn.addEventListener('click', function(e) {
             e.preventDefault();
-            // مسح السلة وتحديث العداد
+            console.log("Home button clicked");
             localStorage.setItem('cart', '[]');
+            cart = [];
             if (typeof updateCartCount === 'function') {
                 updateCartCount();
             }
             window.location.href = 'index.html';
         });
+    } else {
+        console.error("Home button not found!");
     }
 
     // زر إغلاق النافذة المنبثقة
     const closeModalBtn = document.querySelector('.close-modal');
     if (closeModalBtn) {
+        console.log("Found close modal button");
         closeModalBtn.replaceWith(closeModalBtn.cloneNode(true));
         const newCloseBtn = document.querySelector('.close-modal');
         newCloseBtn.addEventListener('click', function(e) {
-            e.preventDefault();
+                e.preventDefault();
+            console.log("Close modal button clicked");
             closeReceiptModal();
         });
+    } else {
+        console.error("Close modal button not found!");
     }
 
     // إغلاق النافذة عند النقر خارجها
     const modal = document.querySelector('.receipt-modal');
     if (modal) {
+        console.log("Found modal element");
         modal.addEventListener('click', function(e) {
             if (e.target === modal) {
+                console.log("Clicked outside modal");
                 closeReceiptModal();
             }
         });
+    } else {
+        console.error("Modal element not found!");
     }
 }
 
@@ -738,7 +769,11 @@ function initializeConfirmationStep() {
     }
 }
 
+// تحديث دالة تأكيد الطلب (confirm order)
 document.getElementById("confirm-order").addEventListener("click", function () {
+    // حفظ نسخة من السلة قبل الإرسال
+    lastOrderItems = JSON.parse(localStorage.getItem("cart") || "[]");
+
     const formData = new FormData();
     formData.append("name", document.getElementById("full-name").value);
     formData.append("email", document.getElementById("email").value);
@@ -747,7 +782,7 @@ document.getElementById("confirm-order").addEventListener("click", function () {
     formData.append("city", document.getElementById("city").value);
     formData.append("deliveryMethod", document.querySelector('input[name="delivery"]:checked').value);
 
-    const orderItems = JSON.parse(localStorage.getItem("cart") || "[]");
+    const orderItems = lastOrderItems;
     const itemsText = orderItems.map(item => `${item.name} (x${item.quantity})`).join(", ");
     formData.append("items", itemsText);
     formData.append("subtotal", document.getElementById("subtotal").textContent.replace('$', ''));
@@ -761,9 +796,181 @@ document.getElementById("confirm-order").addEventListener("click", function () {
     .then(res => res.text())
     .then(data => {
         console.log("تم الإرسال إلى Google Sheet:", data);
-        document.querySelector("#step5").classList.remove("hidden");
+        // بعد الإرسال: حذف السلة وتصفير العداد
+        localStorage.setItem('cart', '[]');
+        cart = [];
+        if (typeof updateCartCount === 'function') updateCartCount();
+        displayOrderSummary();
+        document.querySelector("#new-step5").classList.remove("hidden");
     })
     .catch(err => {
         console.error("خطأ في الإرسال إلى Google Sheets:", err);
     });
 });
+
+// عدل دالة showNewReceiptModal لاستخدام lastOrderItems إذا كانت موجودة
+function showNewReceiptModal() {
+    console.log("Showing new receipt modal...");
+    const modal = document.getElementById('new-receipt-modal');
+    if (!modal) {
+        console.error("New receipt modal not found!");
+        return;
+    }
+
+    // استخدم نسخة الطلب الأخيرة إذا كانت موجودة
+    const orderItems = (lastOrderItems && lastOrderItems.length > 0)
+        ? lastOrderItems
+        : JSON.parse(localStorage.getItem('cart') || '[]');
+    console.log("Order items:", orderItems);
+    
+    const receiptItemsDiv = document.querySelector('.new-receipt-items');
+    if (receiptItemsDiv) {
+        if (orderItems.length > 0) {
+            receiptItemsDiv.innerHTML = orderItems.map(item => `
+                <div class="new-receipt-item">
+                    <div class="new-receipt-item-details">
+                        <img src="${item.image}" alt="${item.name}">
+                        <span>${item.name} x ${item.quantity}</span>
+                    </div>
+                    <span class="new-receipt-item-price">$${(item.price * item.quantity).toFixed(2)}</span>
+                </div>
+            `).join('');
+        } else {
+            receiptItemsDiv.innerHTML = '<div class="new-receipt-item">No items in order.</div>';
+        }
+    }
+
+    const receiptTotalDiv = document.querySelector('.new-receipt-total');
+    if (receiptTotalDiv) {
+        const subtotal = orderItems.reduce((total, item) => total + (item.price * item.quantity), 0);
+        const shipping = 5.99;
+        const total = subtotal + shipping;
+        receiptTotalDiv.innerHTML = `
+            <div class="new-receipt-subtotal">
+                <span>Subtotal:</span>
+                <span>$${subtotal.toFixed(2)}</span>
+            </div>
+            <div class="new-receipt-shipping">
+                <span>Shipping:</span>
+                <span>$${shipping.toFixed(2)}</span>
+            </div>
+            <div class="new-receipt-grand-total">
+                <span>Total:</span>
+                <span>$${total.toFixed(2)}</span>
+            </div>
+        `;
+    }
+
+    modal.classList.add('active');
+    document.body.style.overflow = 'hidden';
+    console.log("New receipt modal should be visible now");
+}
+
+function closeNewReceiptModal() {
+    console.log("Closing new receipt modal...");
+    const modal = document.getElementById('new-receipt-modal');
+    if (!modal) {
+        console.error("New receipt modal not found!");
+        return;
+    }
+    
+    modal.classList.remove('active');
+    document.body.style.overflow = '';
+    console.log("New receipt modal should be hidden now");
+}
+
+function bindNewConfirmationStepButtons() {
+    console.log("Binding new confirmation step buttons...");
+    
+    // زر عرض الفاتورة
+    const viewReceiptBtn = document.getElementById('new-view-receipt');
+    if (viewReceiptBtn) {
+        console.log("Found new view receipt button");
+        viewReceiptBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            console.log("New view receipt button clicked");
+            showNewReceiptModal();
+        });
+    } else {
+        console.error("New view receipt button not found!");
+    }
+
+    // زر العودة للصفحة الرئيسية
+    const homeBtn = document.getElementById('new-go-home');
+    if (homeBtn) {
+        console.log("Found new home button");
+        homeBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            console.log("New home button clicked");
+            localStorage.setItem('cart', '[]');
+            if (typeof updateCartCount === 'function') {
+                updateCartCount();
+            }
+            window.location.href = 'index.html';
+        });
+    } else {
+        console.error("New home button not found!");
+    }
+
+    // زر إغلاق النافذة المنبثقة
+    const closeModalBtn = document.querySelector('.new-close-modal');
+    if (closeModalBtn) {
+        console.log("Found new close modal button");
+        closeModalBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            console.log("New close modal button clicked");
+            closeNewReceiptModal();
+        });
+    } else {
+        console.error("New close modal button not found!");
+    }
+
+    // إغلاق النافذة عند النقر خارجها
+    const modal = document.getElementById('new-receipt-modal');
+    if (modal) {
+        console.log("Found new modal element");
+        modal.addEventListener('click', function(e) {
+            if (e.target === modal) {
+                console.log("Clicked outside new modal");
+                closeNewReceiptModal();
+            }
+        });
+    } else {
+        console.error("New modal element not found!");
+    }
+}
+
+// تحديث دالة initializeConfirmationStep
+function initializeConfirmationStep() {
+    createConfetti();
+    bindNewConfirmationStepButtons();
+}
+
+// تحديث دالة updateSteps
+function updateSteps() {
+    steps.forEach((step, index) => {
+        step.classList.toggle('active', index + 1 === currentStep);
+    });
+
+    checkoutSteps.forEach((step, index) => {
+        step.classList.toggle('active', index + 1 === currentStep);
+        if (step.id === 'new-step5') {
+            if (index + 1 === currentStep) {
+                step.classList.remove('hidden');
+                bindNewConfirmationStepButtons();
+            } else {
+                step.classList.add('hidden');
+            }
+        }
+    });
+
+    const confirmationStep = document.getElementById('new-step5');
+    if (confirmationStep) {
+        if (currentStep === 5) {
+            confirmationStep.classList.remove('hidden');
+            bindNewConfirmationStepButtons();
+        } else {
+            confirmationStep.classList.add('hidden');
+        }
+    }
+}
